@@ -1,14 +1,19 @@
-setwd("C:/Users/Owner/Desktop/MT5762/Projects & Assignments/Project 2")
 library(readxl)
 library(dplyr)
 library(tidyverse)
 library(car)
 
-#Load data
+# Load data
 BabiesData <- readxl::read_excel("babies23.xlsx")
 
 # Summary
 summary(BabiesData)
+
+# Change outliers to NA
+BabiesData <- replace(BabiesData, BabiesData == 99 | BabiesData == 999 | BabiesData == 98, NA)
+
+# Remove NAs
+BabiesData <- na.omit(BabiesData)
 
 # Checking the data types 
 str(BabiesData)
@@ -26,6 +31,12 @@ cols <- c("parity", "race", "ed", "drace", "ded", "marital", "inc", "smoke", "ti
 
 BabiesData[,cols] <- data.frame(apply(BabiesData[cols], 2, as.factor))
 
+# Interactions between the variables 
+interactionModel <- lm(wt...7 ~ gestation * age , data = BabiesData)
+summary(interactionModel)
+
+## The variables have interactions between each other. 
+
 # Create a full model 
 FullModel <- lm(wt...7 ~ ., data = BabiesData)
 formula(FullModel)
@@ -39,9 +50,9 @@ summary(FirstMod)
 
 step(FirstMod, direction = "forward", scope = formula(FullModel))
 
-# The final model is wt...7 ~ smoke + drace + ht + number + date + id + time + gestation
-# AIC = 7023.91
-ForMod <- lm(formula = wt...7 ~ smoke + drace + ht + number + date + id + time + gestation, data = BabiesData)
+# The final model is wt...7 ~ gestation + ht + smoke + drace + parity + dwt
+# AIC = 3294.29
+ForMod <- lm(formula = wt...7 ~ gestation + ht + smoke + drace + parity + dwt, data = BabiesData)
 
 anova(ForMod)
 
@@ -49,26 +60,30 @@ anova(ForMod)
 
 step(FullModel, direction = "backward")
 
-#The final model is wt...7 ~  id + date + race + ht + time + number
-#AIC = 7027.35
+#The final model is wt...7 ~  gestation + parity + ht + drace + dwt + time
+#AIC = 3298.81
 
-BackMod <- lm(formula = wt...7 ~  id + date + race + ht + time + number, data = BabiesData)
+BackMod <- lm(formula = wt...7 ~  gestation + parity + ht + drace + dwt + time, data = BabiesData)
 anova(BackMod)
 
 #Forward & Backward Selection 
 
 step(FullModel, direction = "both")
 
-#The final model is wt...7 ~ id + date + race + ht + time + number
-#AIC = 7027.25
-StepMod <- lm(wt...7 ~ id + date + race + ht + time + number, data = BabiesData)
+#The final model is wt...7 ~ gestation + parity + ht + drace + dwt + time
+#AIC = 3298.81
+StepMod <- lm(wt...7 ~ gestation + parity + ht + drace + dwt + time, data = BabiesData)
 anova(StepMod)
 
 # Since the forward selection shows the lowest AIC, the model is selected. 
 
+# MODEL ASSUMPTIONS / DIAGNOSTICS
+
 # Checking the normality of the model
 qqnorm(resid(ForMod)) + qqline(resid(ForMod))
 shapiro.test(resid(ForMod))
+
+## the p-value = 0.4376, the distribution is normally distributed. 
 
 # Check the extreme residuals
 bigResid <- which(abs(resid(ForMod))>5)
@@ -78,22 +93,23 @@ hist(resid(ForMod))
 ForResid <- resid(ForMod)
 plot(fitted(ForMod), ForResid, ylab = 'residuals', xlab = 'Fitted values')
 
-# p = 0.071311. The variance of the residuals are assumed to be constant (i.e. independent) over the values of the response (fitted values)
+# Checking the variance of the residuals 
 
 ncvTest(ForMod)
+
+## p = 0.36394. The variance of the residuals are assumed to be constant (i.e. independent) over the values of the response (fitted values)
 
 # Checking the autocorrelation of disturbances 
 
 durbinWatsonTest(ForMod)
 
+## p = 0.274, hence the errors are not correlated. 
+
 plot(ForMod, which = 1:2)
 
-# Since there are NAs in the coefficient in the model, we remove some of the variables. 
-# The updated model: wt...7 ~ smoke + drace + ht + date + id + gestation
-
-UpdatedForMod <- lm(formula = wt...7 ~ smoke + drace + ht + date + id + gestation, data = BabiesData)
-
 # Checking for multicollinearity 
-vif(UpdatedForMod)
-# All variables has GVF < 10
-# The variables are all multicollinear
+vif(ForMod)
+
+## All variables has GVF < 10
+## The variables are all multicollinear
+
