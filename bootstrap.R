@@ -10,7 +10,7 @@ library(boot)
 set.seed(2345)
 results <- boot(data = ModelData, statistic = bootstrapping,
                 R = 1000, 
-                formula = wt...7 ~   id + date + gestation + ht + drace + dage + dwt + number)
+                formula = wt...7 ~ gestation + smoke + ht + drace + parity + dht + id)
 print(results)
 
 #Add an index parameter to the plot() and boot.ci() function
@@ -29,7 +29,7 @@ plot(results, index = 8)
 plot(results, index = 9)
 
 
-#To generate the 95% confidence interval for “id + date + gestation + ht + drace + dage + dwt + number”
+#To generate the 95% confidence interval for “gestation + smoke + ht + drace + parity + dht + id”
 boot.ci(results, type = "bca", index = 1)
 boot.ci(results, type = "bca", index = 2)
 boot.ci(results, type = "bca", index = 3)
