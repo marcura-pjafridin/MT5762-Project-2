@@ -4,6 +4,7 @@ library(tidyverse)
 library(car)
 library(bootstrap)
 
+# ----------------------------------------- DATA CLEANING -------------------------------------------- ##
 # Load data
 BabiesData <- readxl::read_excel("babies23.xlsx")
 
@@ -19,9 +20,13 @@ BabiesData <- replace(BabiesData, BabiesData == 99 | BabiesData == 999 | BabiesD
 # Remove NAs
 BabiesData <- na.omit(BabiesData)
 
-# Sample 80%
+# Delete outliers certain columns
+BabiesData <- subset(BabiesData, race < 10  & drace < 10 & smoke < 9 & ed < 9 
+                     & ded < 9, select = id:number)
 
-set.seed(3456)
+# Split data into train & validation set: 80% and 20%
+
+set.seed(1000)
 ModelData <- sample(nrow(BabiesData), nrow(BabiesData) * 0.8, replace = FALSE)
 
 Validata <- BabiesData[-ModelData, ]
@@ -36,7 +41,7 @@ cols <- c("parity", "race", "ed", "drace", "ded", "marital", "inc", "smoke", "ti
 
 ModelData[,cols] <- data.frame(apply(ModelData[cols], 2, as.factor))
 
-
+# ----------------------------------------- MODEL SELECTION -------------------------------------------- ##
 # y variable
 response_df <- ModelData['wt...7']
 
@@ -44,12 +49,6 @@ response_df <- ModelData['wt...7']
 predictors_df <- ModelData[, !names(ModelData) %in% "wt...7"]
 
 head(ModelData)
-
-# Interactions between the variables 
-interactionModel <- lm(wt...7 ~ smoke * gestation, data = ModelData)
-summary(interactionModel)
-
-## Gestation and smoke have interactions between each other. 
 
 # Create a full model 
 FullModel <- lm(wt...7 ~ ., data = ModelData)
@@ -64,69 +63,78 @@ summary(FirstMod)
 
 step(FirstMod, direction = "forward", scope = formula(FullModel))
 
-# The final model is wt...7 ~ gestation + ht + number + drace + dwt + id + parity + smoke
-# AIC = 2620.68
-ForMod <- lm(formula = wt...7 ~ gestation + drace + number + ht + id + date + dwt + 
-               dage, data = ModelData)
+# The final model is wt...7 ~ gestation + smoke + ht + drace + parity + dht + id
+# AIC = 2570.89
+
+ForMod <- lm(formula = wt...7 ~ gestation + smoke + ht + drace + parity + dht + id, data = ModelData)
 
 anova(ForMod)
 
 summary(ForMod)
-## Adjusted R-squared = 0.2932, Multiple R-squared:  0.3182
+## Adjusted R-squared = 0.3216, Multiple R-squared:  0.3591
 
 #Backward Selection
-
 step(FullModel, direction = "backward")
 
-#The final model is wt...7 ~   id + date + gestation + ht + drace + dage + dwt + number
-#AIC = 2628.45
+#The final model is wt...7 ~ id + gestation + parity + ht + drace + dht + time
+#AIC = 2575.5
 
-BackMod <- lm(formula = wt...7 ~   id + date + gestation + ht + drace + dage + dwt + number, data = ModelData)
+BackMod <- lm(formula = wt...7 ~ id + gestation + parity + ht + drace + dht + time, data = ModelData)
 
 anova(BackMod)
 
 summary(BackMod)
-## Adjusted R-squared:  0.2933, Multiple R-squared:  0.3288
+## Adjusted R-squared:  0.323, Multiple R-squared:  0.3691
 
 #Forward & Backward Selection 
-
 step(FullModel, direction = "both")
 
-#The final model is wt...7 ~  id + date + gestation + ht + drace + dage + dwt + number
-#AIC = 2628.45
-StepMod <- lm(wt...7 ~   id + date + gestation + ht + drace + dage + dwt + number, data = ModelData)
+#The final model is wt...7 ~ id + gestation + parity + ht + drace + dht + time
+#AIC = 2575.5
+StepMod <- lm(wt...7 ~  id + gestation + parity + ht + drace + dht + time, data = ModelData)
 anova(StepMod)
 
 summary(StepMod)
-## Adjusted R-squared:  0.2933, Multiple R-squared:  0.3288
+## Adjusted R-squared:  0.323, Multiple R-squared:  0.3691
 ## Since the forward selection shows the lowest AIC, the model is selected. 
 
-# MODEL ASSUMPTIONS / DIAGNOSTICS
+# ----------------------------------------- MODEL ASSUMPTIONS ------------------------------------------ ##
 
+#FORWARD MODEL
 # Checking the normality of the model
-qqnorm(resid(ForMod)) + qqline(resid(ForMod))
+qqnorm(resid(ForMod))
+
+qqline(resid(ForMod))
+
 shapiro.test(resid(ForMod))
 
-## the p-value = 0.3998, the distribution is normally distributed. 
+## the p-value = 0.5073, the distribution is normally distributed. 
 
 # Check the extreme residuals
 bigResid <- which(abs(resid(ForMod))>5)
+
 ModelData[bigResid,]
+
 hist(resid(ForMod))
 
 ForResid <- resid(ForMod)
+
 plot(fitted(ForMod), ForResid, ylab = 'residuals', xlab = 'Fitted values')
 
 # Checking the variance of the residuals 
-
 lmtest::bptest(ForMod)
-## p = 0.1532. The variance of the residuals are assumed to be constant (i.e. independent) over the values of the response (fitted values)
+
+ncvTest(ForMod)
+
+## Breusch-Pagan Test p-value = 0.3148
+## Variance Score Test p-value = 0.63857
+## The variance of the residuals are assumed to be constant (i.e. independent)
+## over the values of the response (fitted values)
 
 # Checking the autocorrelation of disturbances 
-
 durbinWatsonTest(ForMod)
 
-## p = 0.728, hence the errors are not correlated. 
+## p = 0.59, hence the errors are not correlated. 
 
 plot(ForMod, which = 1:2)
 
@@ -136,39 +144,107 @@ vif(ForMod)
 ## All variables has GVF < 10
 ## The variables are all multicollinear
 
-##validation datasets and Mean Square Error (MSE) and hold out a random 20% for this purpose
-#set the random 20% validation dataset
+#STEP MODEL
+# Checking the normality of the model
+qqnorm(resid(StepMod))
 
-#set a MSE matrix
+qqline(resid(StepMod))
+
+shapiro.test(resid(StepMod))
+
+## the p-value = 0.554, the distribution is normally distributed. 
+
+# Check the extreme residuals
+bigResid2 <- which(abs(resid(StepMod))>5)
+
+ModelData[bigResid2,]
+
+hist(resid(StepMod))
+
+ForResid2 <- resid(StepMod)
+
+plot(fitted(StepMod), ForResid2, ylab = 'residuals', xlab = 'Fitted values')
+
+# Checking the variance of the residuals 
+lmtest::bptest(StepMod)
+
+ncvTest(StepMod)
+
+## Breusch-Pagan Test p-value = 0.537
+## Variance Score Test p-value = 0.70392
+## The variance of the residuals are assumed to be constant (i.e. independent)
+## over the values of the response (fitted values)
+
+# Checking the autocorrelation of disturbances 
+durbinWatsonTest(StepMod)
+
+## p = 0.646, hence the errors are not correlated. 
+
+plot(StepMod, which = 1:2)
+
+# Checking for multicollinearity 
+vif(StepMod)
+
+## All variables has GVF < 10
+## The variables are all multicollinear
+
+# Interactions between the variables 
+interactionModel <- lm(wt...7 ~ gestation + smoke + ht + drace + parity + dht 
+                       + id + gestation * smoke, data = ModelData)
+
+summary(interactionModel)
+## Gestation and smoke have interactions between each other
+
+# ----------------------------------------- VALIDATION & MSE -------------------------------------------- ##
+
+# validation datasets and Mean Square Error (MSE) and hold out a random 20% for this purpose
+# set the random 20% validation dataset
+
+# set a MSE matrix
 MSE1 <- matrix(data = rep(0), nrow = 1, ncol = 2)
+
 colnames(MSE1) <- c('formod', 'stepmod')
 
-#choose two models: formod & stepmod
-#formod
+# choose two models: formod & stepmod
+# FORWARD MODEL
 response_formod <- Validata %>% select(wt...7)
+
 predictors_formod <- Validata %>%
   select(gestation, drace, number, ht, id, date, dwt,
            dage)
+
 pred_response_formod <- predict(ForMod, newdata = predictors_formod, se = T)
+
 response_formod$pred <- pred_response_formod$fit
-#calculate updateformodel's MSE
+
+# calculate updateformodel's MSE
 MSE1[1, 1] <- mean((response_formod$wt...7 - response_formod$pred)^2)
 
-#stepmod
+# STEP MODEL
 response_stepmod <- Validata %>% select(wt...7)
+
 predictors_stepmod <- Validata %>% 
   select( id, date, gestation, ht, drace, dage, dwt, number)
-pred_response_stepmod <- predict(StepMod, newdata = predictors_stepmod, se = T)
-response_stepmod$pred <- pred_response_stepmod$fit
-#calculate stepmodel's MSE
-MSE1[1, 2] <- mean((response_stepmod$wt...7 - response_stepmod$pred)^2)
-#The result of the MSE shows that the MSE of the stepmod is smaller, which seems to mean that it fits better
 
-#5-fold cross validation
+pred_response_stepmod <- predict(StepMod, newdata = predictors_stepmod, se = T)
+
+response_stepmod$pred <- pred_response_stepmod$fit
+
+# calculate stepmodel's MSE
+MSE1[1, 2] <- mean((response_stepmod$wt...7 - response_stepmod$pred)^2)
+
+# The result of the MSE shows that the MSE of the stepmod is smaller,
+# which seems to mean that it fits better
+
+# 5-fold cross validation
 MSE <- matrix(0, nrow = 2, ncol = 2)
+
 colnames(MSE) <- c('formod', 'stepmod')
+
 rownames(MSE) <- c('5-fold MSE', 'validetion-dataset MSE')
+
 MSE[2, ] <- MSE1[1, ]
+
 k_fold <- function(fit, k = 5, x, y){
   set.seed(123)
   require(bootstrap)
@@ -188,19 +264,21 @@ k_fold <- function(fit, k = 5, x, y){
   return(MSE)
 }
 
-#formod
+# FORWARD MODEL
 x_formod <- ForMod$model[ , 2:ncol(ForMod$model)]
+
 y_formod <- ForMod$model[ , 1]
 
-#calculate the 5-fold value of the updateformod
+# calculate the 5-fold value of the updateformod
 MSE[1, 1] <- k_fold(ForMod, k=5, x = x_formod, y = y_formod)  
 
-
-#stepmod
-#spread the model data to fit the matrix calculation
+# STEP MODEL
+# spread the model data to fit the matrix calculation
 x_stepmod <- StepMod$model[ , 2:ncol(StepMod$model)]
+
 y_stepmod <- StepMod$model[ , 1]
 
-#calculate the 5-fold value of the updateformod
+# calculate the 5-fold value of the updateformod
 MSE[1, 2] <- k_fold(StepMod, k=5, x = x_stepmod, y = y_stepmod)  
-#The result show that the result of stepmod is a bit better
+
+## The result show that the result of stepmod is a bit better
