@@ -1,11 +1,9 @@
-setwd("C:/Users/Owner/Desktop/MT5762/Projects & Assignments/Project 2")
 library(readxl)
 library(dplyr)
 library(tidyverse)
 library(car)
 
-
-#Load data
+# Load data
 BabiesData <- readxl::read_excel("babies23.xlsx")
 
 # Summary
@@ -14,128 +12,163 @@ summary(BabiesData)
 # Checking the data types 
 str(BabiesData)
 
-# y variable
-response_df <- BabiesData['wt...7']
+# Change outliers to NA
+BabiesData <- replace(BabiesData, BabiesData == 99 | BabiesData == 999 | BabiesData == 98, NA)
 
-# x variable
-predictors_df <- BabiesData[, !names(BabiesData) %in% "wt...7"]
-
-head(BabiesData)
+# Remove NAs
+BabiesData <- na.omit(BabiesData)
 
 # factor the categorical variables
 cols <- c("parity", "race", "ed", "drace", "ded", "marital", "inc", "smoke", "time", "number")
 
-BabiesData[,cols] <- data.frame(apply(BabiesData[cols], 2, as.factor))
+ModelData[,cols] <- data.frame(apply(ModelData[cols], 2, as.factor))
+
+# Sample 80%
+
+set.seed(010)
+ModelData <- sample(nrow(BabiesData), nrow(BabiesData) * 0.8, replace = FALSE)
+Validata <- BabiesData[-ModelData, ]
+ModelData <- BabiesData[ModelData, ]
+
+ModelData <- na.omit(ModelData)
+
+summary(ModelData)
+
+# y variable
+response_df <- ModelData['wt...7']
+
+# x variable
+predictors_df <- ModelData[, !names(ModelData) %in% "wt...7"]
+
+head(ModelData)
+
+# Interactions between the variables 
+interactionModel <- lm(wt...7 ~ smoke * gestation, data = ModelData)
+summary(interactionModel)
+
+## Gestation and smoke have interactions between each other. 
 
 # Create a full model 
-FullModel <- lm(wt...7 ~ ., data = BabiesData)
+FullModel <- lm(wt...7 ~ ., data = ModelData)
 formula(FullModel)
 summary(FullModel)
 anova(FullModel)
 
 #Forward Selection
-FirstMod <- lm(wt...7 ~ 1, data = BabiesData)
+FirstMod <- lm(wt...7 ~ 1, data = ModelData)
 
 summary(FirstMod)
 
 step(FirstMod, direction = "forward", scope = formula(FullModel))
 
-# The final model is wt...7 ~ smoke + drace + ht + number + date + id + time + gestation
-# AIC = 7023.91
-ForMod <- lm(formula = wt...7 ~ smoke + drace + ht + number + date + id + time + gestation, data = BabiesData)
-summary(ForMod)
+# The final model is wt...7 ~ gestation + ht + number + smoke + id + drace + dwt + dage + date
+# AIC = 2625.96
+ForMod <- lm(formula = wt...7 ~ gestation + ht + number + dwt + smoke + 
+               id + drace + date + marital + parity + inc, data = ModelData)
+
 anova(ForMod)
-plot(ForMod)
+
+summary(ForMod)
+## Adjusted R-squared = 0.2812 , Multiple R-squared:  0.2977
+
 #Backward Selection
 
 step(FullModel, direction = "backward")
 
-#The final model is wt...7 ~  id + date + race + ht + time + number
-#AIC = 7027.35
+#The final model is wt...7 ~  id + date + gestation + age + ht + drace + dwt + marital + inc + smoke + number
+#AIC = 2624.24
 
-BackMod <- lm(formula = wt...7 ~  id + date + race + ht + time + number, data = BabiesData)
+BackMod <- lm(formula = wt...7 ~  id + date + gestation + age + ht + drace + 
+                dwt + marital + inc + smoke + number, data = ModelData)
+
 anova(BackMod)
+
 summary(BackMod)
+## Adjusted R-squared:   0.2838 , Multiple R-squared:  0.3002
+
 #Forward & Backward Selection 
 
 step(FullModel, direction = "both")
 
-#The final model is wt...7 ~ id + date + race + ht + time + number
-#AIC = 7027.25
-StepMod <- lm(wt...7 ~ id + date + race + ht + time + number, data = BabiesData)
+#The final model is wt...7 ~ id + date + gestation + age + ht + drace + dwt + marital + inc + smoke + number
+#AIC = 2624.24
+StepMod <- lm(wt...7 ~  id + date + gestation + age + ht + drace + 
+                dwt + marital + inc + smoke + number, data = ModelData)
 anova(StepMod)
 
-# Since the forward selection shows the lowest AIC, the model is selected. 
+summary(StepMod)
+## Adjusted R-squared:  0.2838, Multiple R-squared:  0.3002
+## Since the stepword selection shows the lowest AIC, the model is selected. 
+
+# MODEL ASSUMPTIONS / DIAGNOSTICS
 
 # Checking the normality of the model
-qqnorm(resid(ForMod)) + qqline(resid(ForMod))
-shapiro.test(resid(ForMod))
+qqnorm(resid(StepMod)) + qqline(resid(StepMod))
+shapiro.test(resid(StepMod))
+
+## the p-value = 0.2391, the distribution is normally distributed. 
 
 # Check the extreme residuals
-bigResid <- which(abs(resid(ForMod))>5)
-BabiesData[bigResid,]
-hist(resid(ForMod))
+bigResid <- which(abs(resid(StepMod))>5)
+ModelData[bigResid,]
+hist(resid(StepMod))
 
-ForResid <- resid(ForMod)
-plot(fitted(ForMod), ForResid, ylab = 'residuals', xlab = 'Fitted values')
+StepResid <- resid(StepMod)
+plot(fitted(StepMod), StepResid, ylab = 'residuals', xlab = 'Fitted values')
 
-# p = 0.071311. The variance of the residuals are assumed to be constant (i.e. independent) over the values of the response (fitted values)
+# Checking the variance of the residuals 
 
-ncvTest(ForMod)
+lmtest::bptest(StepMod)
+## p = 0.00509. The variance of the residuals are not assumed to be constant (i.e. independent) over the values of the response (fitted values)
 
 # Checking the autocorrelation of disturbances 
 
-durbinWatsonTest(ForMod)
+durbinWatsonTest(StepMod)
+
+## p = 0.184, hence the errors are not correlated. 
 
 plot(ForMod, which = 1:2)
 
-# Since there are NAs in the coefficient in the model, we remove some of the variables. 
-# The updated model: wt...7 ~ smoke + drace + ht + date + id + gestation
-
-UpdatedForMod <- lm(formula = wt...7 ~ smoke + drace + ht + date + id + gestation, data = BabiesData)
-summary(UpdatedForMod)
-
-# The second model is the updated stepmod removing 'number'
-Updatedstepmod <- lm(formula = wt...7 ~ id + date + race + ht + time, data = BabiesData)
-summary(Updatedstepmod)
 # Checking for multicollinearity 
-vif(UpdatedForMod)
-# All variables has GVF < 10
-# The variables are all multicollinear
+vif(ForMod)
+
+## All variables has GVF < 10
+## The variables are all multicollinear
 
 
 
 ##validation datasets and Mean Square Error (MSE) and hold out a random 20% for this purpose
 #set the random 20% validation dataset
-set.seed(1)
-vali_data <- sample(nrow(BabiesData), nrow(BabiesData)*0.2, replace = F)
-vali_babydata <- BabiesData[vali_data, ]
 
 #set a MSE matrix
 MSE1 <- matrix(data = rep(0), nrow = 1, ncol = 2)
-colnames(MSE1) <- c('updateformod', 'updatestepmod')
+colnames(MSE1) <- c('formod', 'stepmod')
 
-#choose two models: updateformod & stepmod
-#updateformod
-response_updateformod <- vali_babydata %>% select(wt...7)
-predictors_updateformod <- vali_babydata %>% select(smoke, drace, ht, date, id, gestation)
-pred_response_updateformod <- predict(UpdatedForMod, newdata = predictors_updateformod, se = T)
-response_updateformod$pred <- pred_response_updateformod$fit
+#choose two models: formod & stepmod
+#formod
+response_formod <- Validata %>% select(wt...7)
+predictors_formod <- Validata %>%
+  select(gestation, ht, number, dwt, smoke, 
+         id, drace, date, marital, parity, inc)
+pred_response_formod <- predict(ForMod, newdata = predictors_formod, se = T)
+response_formod$pred <- pred_response_formod$fit
 #calculate updateformodel's MSE
-MSE1[1, 1] <- mean((response_updateformod$wt...7 - response_updateformod$pred)^2)
+MSE1[1, 1] <- mean((response_formod$wt...7 - response_formod$pred)^2)
 
-#updatedstepmod
-response_updatestepmod <- vali_babydata %>% select(wt...7)
-predictors_updatestepmod <- vali_babydata %>% select(id, date, race, ht, time)
-pred_response_updatestepmod <- predict(Updetedstepmod, newdata = predictors_updatestepmod, se = T)
-response_updatestepmod$pred <- pred_response_updatestepmod$fit
+#stepmod
+response_stepmod <- Validata %>% select(wt...7)
+predictors_stepmod <- Validata %>% 
+  select(id, date, gestation, age, ht, drace,
+         dwt, marital, inc, smoke, number)
+pred_response_stepmod <- predict(StepMod, newdata = predictors_stepmod, se = T)
+response_stepmod$pred <- pred_response_stepmod$fit
 #calculate stepmodel's MSE
-MSE1[1, 2] <- mean((response_updatestepmod$wt...7 - response_updatestepmod$pred)^2)
+MSE1[1, 2] <- mean((response_stepmod$wt...7 - response_stepmod$pred)^2)
 #The result of the MSE shows that the MSE of the stepmod is smaller, which seems to mean that it fits better
 
 #5-fold cross validation
 MSE <- matrix(0, nrow = 2, ncol = 2)
-colnames(MSE) <- c('updateformod', 'stepmod')
+colnames(MSE) <- c('formod', 'stepmod')
 rownames(MSE) <- c('5-fold MSE', 'validetion-dataset MSE')
 MSE[2, ] <- MSE1[1, ]
 k_fold <- function(fit, k = 5, x, y){
@@ -157,85 +190,19 @@ k_fold <- function(fit, k = 5, x, y){
   return(MSE)
 }
 
-#updateformod
-#spread the model data to fit the matrix calculation
-x_formod <- UpdatedForMod$model[ , 2:ncol(UpdatedForMod$model)]
-y_formod <- UpdatedForMod$model[ , 1]
-x_formod <- spread(x_formod, key = smoke, value = smoke, sep = '')
-x_formod <- spread(x_formod, key = drace, value = drace, sep = '')
-x_formod <- x_formod %>% select(smoke1, smoke2, smoke3, smoke9, drace1, drace10, drace2, drace3, drace4, drace5, drace6, drace7, drace8,
-                     drace9, drace99, ht, date, id, gestation)
-x_formod[is.na(x_formod)] <- 0
-for(i in 1:1236){
-  if(x_formod$smoke2[i] == 2) x_formod$smoke2[i] <- 1
-  if(x_formod$smoke3[i] == 3) x_formod$smoke3[i] <- 1
-  if(x_formod$smoke9[i] == 9) x_formod$smoke9[i] <- 1
-  if(x_formod$drace10[i] == 10) x_formod$drace10[i] <- 1
-  if(x_formod$drace2[i] == 2) x_formod$drace2[i] <- 1
-  if(x_formod$drace3[i] == 3) x_formod$drace3[i] <- 1
-  if(x_formod$drace4[i] == 4) x_formod$drace4[i] <- 1
-  if(x_formod$drace5[i] == 5) x_formod$drace5[i] <- 1
-  if(x_formod$drace6[i] == 6) x_formod$drace6[i] <- 1
-  if(x_formod$drace7[i] == 7) x_formod$drace7[i] <- 1
-  if(x_formod$drace8[i] == 8) x_formod$drace8[i] <- 1
-  if(x_formod$drace9[i] == 9) x_formod$drace9[i] <- 1
-  if(x_formod$drace99[i] == 99) x_formod$drace99[i] <- 1
-}
-str(x_formod)
-#transform the factor into numeric for calculating the matrix
-cols_for <- c("smoke1", "smoke2", "smoke3", "smoke9", "drace1", "drace10", "drace2", "drace3",
-          "drace4", "drace5", "drace6", "drace7", "drace8", "drace9", "drace99")
-x_formod[,cols_for] <- data.frame(apply(x_formod[cols_for], 2, as.numeric))
-str(x_formod)
-x_formod <- as.matrix(x_formod)
-y_formod <- as.matrix(y_formod)
+#formod
+x_formod <- ForMod$model[ , 2:ncol(ForMod$model)]
+y_formod <- ForMod$model[ , 1]
+
 #calculate the 5-fold value of the updateformod
-MSE[1, 1] <- k_fold(UpdatedForMod, k=5, x = x_formod, y = y_formod)  
+MSE[1, 1] <- k_fold(ForMod, k=5, x = x_formod, y = y_formod)  
 
 
 #stepmod
 #spread the model data to fit the matrix calculation
-x_stepmod <- Updatedstepmod$model[ , 2:ncol(Updatedstepmod$model)]
-y_stepmod <- Updatedstepmod$model[ , 1]
-x_stepmod <- spread(x_stepmod, key = race, value = race, sep = '')
-x_stepmod <- spread(x_stepmod, key = time, value = time, sep = '')
-x_stepmod <- x_stepmod %>% select(id, date, race1, race10, race2, race3,
-                                  race4, race5, race6, race7, race8, race9, race99,
-                                  ht, time1, time2, time3, time4, time5, time6,
-                                  time7, time8, time9, time98, time99)
-x_stepmod[is.na(x_stepmod)] <- 0
-for(i in 1:1236){
-  if(x_stepmod$race10[i] == 10) x_stepmod$race10[i] <- 1
-  if(x_stepmod$race2[i] == 2) x_stepmod$race2[i] <- 1
-  if(x_stepmod$race3[i] == 3) x_stepmod$race3[i] <- 1
-  if(x_stepmod$race4[i] == 4) x_stepmod$race4[i] <- 1
-  if(x_stepmod$race5[i] == 5) x_stepmod$race5[i] <- 1
-  if(x_stepmod$race6[i] == 6) x_stepmod$race6[i] <- 1
-  if(x_stepmod$race7[i] == 7) x_stepmod$race7[i] <- 1
-  if(x_stepmod$race8[i] == 8) x_stepmod$race8[i] <- 1
-  if(x_stepmod$race9[i] == 9) x_stepmod$race9[i] <- 1
-  if(x_stepmod$race99[i] == 99) x_stepmod$race99[i] <- 1
-  if(x_stepmod$time2[i] == 2) x_stepmod$time2[i] <- 1
-  if(x_stepmod$time3[i] == 3) x_stepmod$time3[i] <- 1
-  if(x_stepmod$time4[i] == 4) x_stepmod$time4[i] <- 1
-  if(x_stepmod$time5[i] == 5) x_stepmod$time5[i] <- 1
-  if(x_stepmod$time6[i] == 6) x_stepmod$time6[i] <- 1
-  if(x_stepmod$time7[i] == 7) x_stepmod$time7[i] <- 1
-  if(x_stepmod$time8[i] == 8) x_stepmod$time8[i] <- 1
-  if(x_stepmod$time9[i] == 9) x_stepmod$time9[i] <- 1
-  if(x_stepmod$time98[i] == 98) x_stepmod$time98[i] <- 1
-  if(x_stepmod$time99[i] == 99) x_stepmod$time99[i] <- 1
-}
-str(x_stepmod)
+x_stepmod <- StepMod$model[ , 2:ncol(StepMod$model)]
+y_stepmod <- StepMod$model[ , 1]
 
-#transform the factor into numeric for calculating the matrix
-cols_stepmod <- c("race1", "race10", "race2", "race3", "race4", "race5", "race6", "race7",
-          "race8", "race9", "race99", "time1", "time2", "time3", "time4", "time5",
-          "time6", "time7", "time8", "time9", "time98", "time99")
-x_stepmod[,cols_stepmod] <- data.frame(apply(x_stepmod[cols_stepmod], 2, as.numeric))
-str(x_stepmod)
-x_stepmod <- as.matrix(x_stepmod)
-y_stepmod <- as.matrix(y_stepmod)
 #calculate the 5-fold value of the updateformod
-MSE[1, 2] <- k_fold(Updatedstepmod, k=5, x = x_stepmod, y = y_stepmod)  
-#The result show that the updatedmodel is better because the value of 5-fold is much smaller
+MSE[1, 2] <- k_fold(StepMod, k=5, x = x_stepmod, y = y_stepmod)  
+#The result show that the result of stepmod is a bit better
