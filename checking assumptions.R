@@ -60,6 +60,6 @@ durbinWatsonTest(StepMod)
 vif(StepMod)
 
 ## All the GVIF < 10
-## No multicolinearity
+## No strong multicolinearity
 
 ## Both ForMod and StepMod pass the assumption checking
