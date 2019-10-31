@@ -1,65 +1,50 @@
-# ----------------------------------------- MODEL ASSUMPTIONS ------------------------------------------ ##
+############### check assumptions #################
 
-#FORWARD MODEL
-# Checking the normality of the residuals
-plot(ForMod)
-## from the second plot, the residuals are normally distributed
+###### ForMod ######
+# checking linear relationship
+plot(ForMod,1)
+## no curvature, so the relationship is linear
 
-qqnorm(resid(ForMod))
-
-qqline(resid(ForMod))
-
+# checking if residuals normally distributed
+plot(ForMod,2)
 shapiro.test(resid(ForMod))
+## from the normal Q-Q plot, the residuals are normally distributed
+## p-value = 0.5073, so the resiudals are normally distributed
 
-## the p-value = 0.5073, the distribution is normally distributed. 
-
-# Checking the variance of the residuals 
-
+# checking the variance of the residuals 
 ncvTest(ForMod)
+## p-value = 0.63857, so the variance of residuals is constant
 
-## the p-value = 0.63857
-## the variance of the residuals is constant
-
-# Checking the independence of residuals 
+# checking the independence of residuals
 durbinWatsonTest(ForMod)
+## p-value = 0.59, rediduals are independent
 
-## the p-value = 0.594, so the residuals are independent
-
-# Checking for multicollinearity 
+# checking collinearity 
 vif(ForMod)
+## 1 < GVIFs < 2, no strong colinearity
 
-## All the GVIF < 10
-## No strong multicolinearity
+###### StepMod ######
+# checking linear relationship
+plot(StepMod,1)
+## no curvature, so the relationship is linear
 
-#STEP MODEL
-# Checking the normality of the residuals
-plot(StepMod)
-## from the second plot, the residuals are normally distributed
-
-qqnorm(resid(StepMod))
-
-qqline(resid(StepMod))
-
+# checking if residuals normally distributed
+plot(StepMod,2)
 shapiro.test(resid(StepMod))
+## from the normal Q-Q plot, the residuals are normally distributed
+## p-value = 0.554, so the resiudals are normally distributed
 
-## the p-value = 0.554, the distribution is normally distributed. 
-
-# Checking the variance of the residuals 
-
+# checking the variance of the residuals 
 ncvTest(StepMod)
+## p-value = 0.70392, so the variance of residuals is constant
 
-## the Variance Score Test p-value = 0.70392
-## the variance of the residuals is constant
-
-# Checking the independence of residuals 
+# checking the independence of residuals 
 durbinWatsonTest(StepMod)
+## p-value = 0.67, rediduals are independent
 
-## the p-value = 0.67, so the residuals are independent
-
-# Checking for multicollinearity 
+# checking collinearity 
 vif(StepMod)
+## 1 < GVIFs < 2, no strong colinearity
 
-## All the GVIF < 10
-## No strong multicolinearity
 
-## Both ForMod and StepMod pass the assumption checking
+############### Both ForMod and StepMod pass the assumption checking #################
