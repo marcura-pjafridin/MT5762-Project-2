@@ -245,7 +245,6 @@ rownames(MSE) <- c('5-fold MSE', 'validetion-dataset MSE')
 MSE[2, ] <- MSE1[1, ]
 
 k_fold <- function(fit, k = 5, x, y){
-  browser()
   set.seed(123)
   require(bootstrap)
   theta.fit <- function(x, y){lsfit(x, y)}
@@ -255,7 +254,7 @@ k_fold <- function(fit, k = 5, x, y){
   #set up a matrix to put in the response
   response <- matrix(rep(0), nrow = nrow(x), ncol = 2)
   colnames(response) <- c('obser', 'pred')
-  response[ , 1] <- fit$model[ , 1]
+  response[ , 1] <- y
   #The cross-validated fit for each observation
   response[ , 2] <- results$cv.fit
   #calculate the MSE
@@ -265,12 +264,12 @@ k_fold <- function(fit, k = 5, x, y){
 }
 
 # FORWARD MODEL
-x_formod <- ForMod$model[ , 2:ncol(ForMod$model)]
-y_formod <- ForMod$model[ , 1]
+x_formod <- BabiesData %>% select(gestation, smoke, ht, drace, parity, dht, id)
+y_formod <- BabiesData %>% select(wt...7)
 x_formod <- spread(x_formod, key = smoke, value = smoke, sep = '')
 x_formod <- spread(x_formod, key = drace, value = drace, sep = '')
 x_formod <- spread(x_formod, key = parity, value = parity, sep = '')
-x_formod <- x_formod %>% select(smoke1, smoke2, smoke3, ht, drace1, drace2, drace3, 
+x_formod <- x_formod %>% select(gestation, smoke1, smoke2, smoke3, ht, drace1, drace2, drace3, 
                                 drace4, drace5, drace6, drace7, drace8, drace9,
                                 parity1, parity10, parity11, parity2, parity3, 
                                 parity4, parity5, parity6, parity7, parity9, dht, id)
@@ -297,23 +296,16 @@ for(i in 1:471){
   if(x_formod$parity9[i] == 9) x_formod$parity9[i] <- 1
 }
 str(x_formod)
-#transform the factor into numeric for calculating the matrix
-cols_for <- c("smoke1", "smoke2", "smoke3",  "drace1", "drace2", "drace3",
-              "drace4", "drace5", "drace6", "drace7", "drace8", "drace9", 
-              "parity1", "parity10", "parity11", "parity2", "parity3", 
-              "parity4", "parity5", "parity6", "parity7", "parity9")
-x_formod[,cols_for] <- data.frame(apply(x_formod[cols_for], 2, as.numeric))
-str(x_formod)
+#transform into a matrix
 x_formod <- as.matrix(x_formod)
 y_formod <- as.matrix(y_formod)
 #calculate the 5-fold value of the updateformod
 MSE[1, 1] <- k_fold(ForMod, k=5, x = x_formod, y = y_formod)  
 
-
 # STEP MODEL
 # spread the model data to fit the matrix calculation
-x_stepmod <- StepMod$model[ , 2:ncol(StepMod$model)]
-y_stepmod <- StepMod$model[ , 1]
+x_stepmod <- BabiesData %>% select(id, gestation, parity, ht, drace, dht, time)
+y_stepmod <- BabiesData %>% select(wt...7)
 x_stepmod <- spread(x_stepmod, key = parity, value = parity, sep = '')
 x_stepmod <- spread(x_stepmod, key = drace, value = drace, sep = '')
 x_stepmod <- spread(x_stepmod, key = time, value = time, sep = '')
@@ -323,6 +315,7 @@ x_stepmod <- x_stepmod %>% select(id, gestation, parity1, parity10, parity11, pa
                                   drace8, drace9, dht, time1, time2, time3, time4, 
                                   time5, time6, time7, time8, time9)
 x_stepmod[is.na(x_stepmod)] <- 0
+
 for(i in 1:471){
   if(x_stepmod$parity10[i] == 10) x_stepmod$parity10[i] <- 1
   if(x_stepmod$parity11[i] == 11) x_stepmod$parity11[i] <- 1
@@ -352,14 +345,7 @@ for(i in 1:471){
 }
 str(x_stepmod)
 
-#transform the factor into numeric for calculating the matrix
-cols_stepmod <- c( "drace1", "drace2", "drace3", "drace4", "drace5", "drace6", 
-                   "drace7", "drace8", "drace9", "parity1", "parity10", "parity11", 
-                   "parity2", "parity3", "parity4", "parity5", "parity6", "parity7", 
-                   "parity9", "time1", "time2", "time3", "time4", "time5", "time6", 
-                   "time7", "time8", "time9")
-x_stepmod[,cols_stepmod] <- data.frame(apply(x_stepmod[cols_stepmod], 2, as.numeric))
-str(x_stepmod)
+##transform into a matrix
 x_stepmod <- as.matrix(x_stepmod)
 y_stepmod <- as.matrix(y_stepmod)
 #calculate the 5-fold value of the updateformod
