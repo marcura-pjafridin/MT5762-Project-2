@@ -2,7 +2,8 @@
 
 ###### ForMod ######
 # checking linear relationship
-plot(ForMod,1)
+par(mfrow=c(3,3))
+termplot(ForMod,se=T,partial.resid = T)
 ## no curvature, so the relationship is linear
 
 # checking if residuals normally distributed
@@ -25,7 +26,8 @@ vif(ForMod)
 
 ###### StepMod ######
 # checking linear relationship
-plot(StepMod,1)
+par(mfrow=c(3,3))
+termplot(StepMod,se=T,partial.resid = T)
 ## no curvature, so the relationship is linear
 
 # checking if residuals normally distributed
