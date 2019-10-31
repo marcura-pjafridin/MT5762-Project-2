@@ -10,14 +10,14 @@ library(boot)
 set.seed(2345)
 results <- boot(data = ModelData, statistic = bootstrapping,
                 R = 1000, 
-                formula = wt...7 ~  id + gestation + parity + ht + drace + dht + time)
+                formula = wt...7 ~ gestation + smoke + ht + drace + parity + dht + id)
 print(results)
 
 
 #Add an index parameter to the plot() and boot.ci() function
 #To indicate which column of object to analyze
-#index 2 is id, index 3 is gestation, index 4 is parity, index 5 is ht, 
-#index 6 is drace, index 7 = dht, index 8 is time
+#index 2 is gestation, index 3 is smoke, index 4 is ht, index 5 is drace, 
+#index 6 is parity, index 7 = dht, index 8 is id
 #To polt the results for each index
 #8 plots in total
 for (i in 1:8) {
@@ -34,7 +34,7 @@ plot(results, index = 7)
 plot(results, index = 8)
 
 
-#To generate the 95% confidence interval for “id + gestation + parity + ht + drace + dht + time”
+#To generate the 95% confidence interval for “gestation + smoke + ht + drace + parity + dht + id”
 
 boot.ci(results, type = "bca", index = 1)
 boot.ci(results, type = "bca", index = 2)
