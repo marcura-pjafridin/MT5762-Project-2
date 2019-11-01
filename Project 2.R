@@ -17,6 +17,7 @@ str(BabiesData)
 # Change outliers to NA
 BabiesData <- replace(BabiesData, BabiesData == 99 | BabiesData == 999 | BabiesData == 98, NA)
 
+
 # Remove NAs
 BabiesData <- na.omit(BabiesData)
 
@@ -41,6 +42,10 @@ cols <- c("parity", "race", "ed", "drace", "ded", "marital", "inc", "smoke", "ti
 
 ModelData[,cols] <- data.frame(apply(ModelData[cols], 2, as.factor))
 Validata[,cols] <- data.frame(apply(Validata[cols], 2, as.factor))
+ModelData1 <- ModelData
+Validata1 <- Validata
+ModelData <- ModelData %>% select(pluralty:number)
+Validata <- Validata %>% select(pluralty:number)
 # ----------------------------------------- MODEL SELECTION -------------------------------------------- ##
 # y variable
 response_df <- ModelData['wt...7']
@@ -63,39 +68,39 @@ summary(FirstMod)
 
 step(FirstMod, direction = "forward", scope = formula(FullModel))
 
-# The final model is wt...7 ~ gestation + smoke + ht + drace + parity + dht + id
-# AIC = 2570.89
+# The final model is wt...7 ~ gestation + smoke + ht + drace + parity + dht
+# AIC = 2572.19
 
-ForMod <- lm(formula = wt...7 ~ gestation + smoke + ht + drace + parity + dht + id, data = ModelData)
+ForMod <- lm(formula = wt...7 ~ gestation + smoke + ht + drace + parity + dht, data = ModelData)
 
 anova(ForMod)
 
 summary(ForMod)
-## Adjusted R-squared = 0.3216, Multiple R-squared:  0.3591
+## Adjusted R-squared = 0.3184, Multiple R-squared: 0.3546
 
 #Backward Selection
 step(FullModel, direction = "backward")
 
-#The final model is wt...7 ~ id + gestation + parity + ht + drace + dht + time
-#AIC = 2575.5
+#The final model is wt...7 ~ gestation + parity + ht + drace + dht + time
+#AIC = 2576.63
 
-BackMod <- lm(formula = wt...7 ~ id + gestation + parity + ht + drace + dht + time, data = ModelData)
+BackMod <- lm(formula = wt...7 ~ gestation + parity + ht + drace + dht + time, data = ModelData)
 
 anova(BackMod)
 
 summary(BackMod)
-## Adjusted R-squared:  0.323, Multiple R-squared:  0.3691
+## Adjusted R-squared:  0.32, Multiple R-squared:  0.3649
 
 #Forward & Backward Selection 
 step(FullModel, direction = "both")
 
-#The final model is wt...7 ~ id + gestation + parity + ht + drace + dht + time
-#AIC = 2575.5
-StepMod <- lm(wt...7 ~  id + gestation + parity + ht + drace + dht + time, data = ModelData)
+#The final model is wt...7 ~ gestation + parity + ht + drace + dht + time
+#AIC = 2576.63
+StepMod <- lm(wt...7 ~ gestation + parity + ht + drace + dht + time, data = ModelData)
 anova(StepMod)
 
 summary(StepMod)
-## Adjusted R-squared:  0.323, Multiple R-squared:  0.3691
+## Adjusted R-squared:  0.32, Multiple R-squared:  0.3649
 ## Since the forward selection shows the lowest AIC, the model is selected. 
 
 # ----------------------------------------- MODEL ASSUMPTIONS ------------------------------------------ ##
@@ -108,7 +113,7 @@ qqline(resid(ForMod))
 
 shapiro.test(resid(ForMod))
 
-## the p-value = 0.5073, the distribution is normally distributed. 
+## the p-value = 0.5441, the distribution is normally distributed. 
 
 # Check the extreme residuals
 bigResid <- which(abs(resid(ForMod))>5)
@@ -126,15 +131,15 @@ lmtest::bptest(ForMod)
 
 ncvTest(ForMod)
 
-## Breusch-Pagan Test p-value = 0.3148
-## Variance Score Test p-value = 0.63857
+## Breusch-Pagan Test p-value = 0.3746
+## Variance Score Test p-value = 0.64777
 ## The variance of the residuals are assumed to be constant (i.e. independent)
 ## over the values of the response (fitted values)
 
 # Checking the autocorrelation of disturbances 
 durbinWatsonTest(ForMod)
 
-## p = 0.59, hence the errors are not correlated. 
+## p = 0.694, hence the errors are not correlated. 
 
 plot(ForMod, which = 1:2)
 
@@ -152,7 +157,7 @@ qqline(resid(StepMod))
 
 shapiro.test(resid(StepMod))
 
-## the p-value = 0.554, the distribution is normally distributed. 
+## the p-value = 0.5127, the distribution is normally distributed. 
 
 # Check the extreme residuals
 bigResid2 <- which(abs(resid(StepMod))>5)
@@ -170,15 +175,15 @@ lmtest::bptest(StepMod)
 
 ncvTest(StepMod)
 
-## Breusch-Pagan Test p-value = 0.537
-## Variance Score Test p-value = 0.70392
+## Breusch-Pagan Test p-value = 0.5125
+## Variance Score Test p-value = 0.79342
 ## The variance of the residuals are assumed to be constant (i.e. independent)
 ## over the values of the response (fitted values)
 
 # Checking the autocorrelation of disturbances 
 durbinWatsonTest(StepMod)
 
-## p = 0.646, hence the errors are not correlated. 
+## p = 0.804, hence the errors are not correlated. 
 
 plot(StepMod, which = 1:2)
 
@@ -210,7 +215,7 @@ colnames(MSE1) <- c('formod', 'stepmod')
 response_formod <- Validata %>% select(wt...7)
 
 predictors_formod <- Validata %>%
-  select(gestation, smoke, ht, drace, parity, dht, id)
+  select(gestation, smoke, ht, drace, parity, dht)
 
 pred_response_formod <- predict(ForMod, newdata = predictors_formod, se = T)
 
@@ -223,7 +228,7 @@ MSE1[1, 1] <- mean((response_formod$wt...7 - response_formod$pred)^2)
 response_stepmod <- Validata %>% select(wt...7)
 
 predictors_stepmod <- Validata %>% 
-  select(id, gestation, parity, ht, drace, dht, time)
+  select(gestation, parity, ht, drace, dht, time)
 
 pred_response_stepmod <- predict(StepMod, newdata = predictors_stepmod, se = T)
 
@@ -264,7 +269,10 @@ k_fold <- function(fit, k = 5, x, y){
 }
 
 # FORWARD MODEL
+
 x_formod <- BabiesData %>% select(gestation, smoke, ht, drace, parity, dht, id)
+
+
 y_formod <- BabiesData %>% select(wt...7)
 x_formod <- spread(x_formod, key = smoke, value = smoke, sep = '')
 x_formod <- spread(x_formod, key = drace, value = drace, sep = '')
@@ -297,6 +305,7 @@ for(i in 1:471){
 }
 str(x_formod)
 #transform into a matrix
+x_formod <- x_formod %>% select(gestation:dht)
 x_formod <- as.matrix(x_formod)
 y_formod <- as.matrix(y_formod)
 #calculate the 5-fold value of the updateformod
@@ -309,6 +318,7 @@ y_stepmod <- BabiesData %>% select(wt...7)
 x_stepmod <- spread(x_stepmod, key = parity, value = parity, sep = '')
 x_stepmod <- spread(x_stepmod, key = drace, value = drace, sep = '')
 x_stepmod <- spread(x_stepmod, key = time, value = time, sep = '')
+
 x_stepmod <- x_stepmod %>% select(id, gestation, parity1, parity10, parity11, parity2,
                                   parity3, parity4, parity5, parity6, parity7, parity9, ht,
                                   drace1, drace2, drace3, drace4, drace5, drace6, drace7, 
@@ -346,8 +356,11 @@ for(i in 1:471){
 str(x_stepmod)
 
 ##transform into a matrix
+x_stepmod <- x_stepmod %>% select(gestation:time9)
 x_stepmod <- as.matrix(x_stepmod)
 y_stepmod <- as.matrix(y_stepmod)
 #calculate the 5-fold value of the updateformod
 MSE[1, 2] <- k_fold(StepMod, k=5, x = x_stepmod, y = y_stepmod)  
+
 #The result show that the formod is better because the value of 5-fold is much smaller
+
