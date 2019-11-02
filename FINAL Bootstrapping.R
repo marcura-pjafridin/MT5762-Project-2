@@ -118,7 +118,7 @@ rbind(quantile(bootresults_parity [,1], probs = c(0.025, 0.975)),
 
 #
 #dht
-#store the  regression coefficients of parity
+#store the  regression coefficients of dht
 bootresults_dht <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
