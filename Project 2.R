@@ -99,95 +99,60 @@ summary(StepMod)
 ## Adjusted R-squared:  0.32, Multiple R-squared:  0.3649
 ## Since the forward selection shows the lowest AIC, the model is selected. 
 
-# ----------------------------------------- MODEL ASSUMPTIONS ------------------------------------------ ##
+# ------------------------------------- CHECK ASSUMPTIONS --------------------------------------- ##
+###### ForMod ######
+# checking linear relationship
+par(mfrow=c(2,3))
+termplot(ForMod,se=T,partial.resid = T)
+## no curvature, so the relationship is linear
 
-#FORWARD MODEL
-# Checking the normality of the model
-qqnorm(resid(ForMod))
-
-qqline(resid(ForMod))
-
+# checking if residuals normally distributed
+par(mfrow=c(1,1))
+plot(ForMod,2)
 shapiro.test(resid(ForMod))
+## from the normal Q-Q plot, the residuals are normally distributed
+## p-value = 0.5441, so the resiudals are normally distributed
 
-## the p-value = 0.5441, the distribution is normally distributed. 
-
-# Check the extreme residuals
-bigResid <- which(abs(resid(ForMod))>5)
-
-ModelData[bigResid,]
-
-hist(resid(ForMod))
-
-ForResid <- resid(ForMod)
-
-plot(fitted(ForMod), ForResid, ylab = 'residuals', xlab = 'Fitted values')
-
-# Checking the variance of the residuals 
-lmtest::bptest(ForMod)
-
+# checking the variance of the residuals 
 ncvTest(ForMod)
+## p-value = 0.64777, so the variance of residuals is constant
 
-## Breusch-Pagan Test p-value = 0.3746
-## Variance Score Test p-value = 0.64777
-## The variance of the residuals are assumed to be constant (i.e. independent)
-## over the values of the response (fitted values)
-
-# Checking the autocorrelation of disturbances 
+# checking the independence of residuals
 durbinWatsonTest(ForMod)
+## p-value > 0.05, rediduals are independent
 
-## p = 0.59, hence the errors are not correlated. 
-
-plot(ForMod, which = 1:2)
-
-# Checking for multicollinearity 
+# checking collinearity 
 vif(ForMod)
+## 1 < GVIFs < 2, no strong colinearity
 
-## All variables has GVF < 10
-## The variables are all multicollinear
+###### StepMod ######
+# checking linear relationship
+par(mfrow=c(2,3))
+termplot(StepMod,se=T,partial.resid = T)
+## no curvature, so the relationship is linear
 
-#STEP MODEL
-# Checking the normality of the model
-qqnorm(resid(StepMod))
-
-qqline(resid(StepMod))
-
+# checking if residuals normally distributed
+par(mfrow=c(1,1))
+plot(StepMod,2)
 shapiro.test(resid(StepMod))
+## from the normal Q-Q plot, the residuals are normally distributed
+## p-value = 0.5127, so the resiudals are normally distributed
 
-## the p-value = 0.554, the distribution is normally distributed. 
-
-# Check the extreme residuals
-bigResid2 <- which(abs(resid(StepMod))>5)
-
-ModelData[bigResid2,]
-
-hist(resid(StepMod))
-
-ForResid2 <- resid(StepMod)
-
-plot(fitted(StepMod), ForResid2, ylab = 'residuals', xlab = 'Fitted values')
-
-# Checking the variance of the residuals 
-lmtest::bptest(StepMod)
-
+# checking the variance of the residuals 
 ncvTest(StepMod)
+## p-value = 0.79342, so the variance of residuals is constant
 
-## Breusch-Pagan Test p-value = 0.537
-## Variance Score Test p-value = 0.70392
-## The variance of the residuals are assumed to be constant (i.e. independent)
-## over the values of the response (fitted values)
-
-# Checking the autocorrelation of disturbances 
+# checking the independence of residuals 
 durbinWatsonTest(StepMod)
+## p-value > 0.05, rediduals are independent
 
-## p = 0.646, hence the errors are not correlated. 
-
-plot(StepMod, which = 1:2)
-
-# Checking for multicollinearity 
+# checking collinearity 
 vif(StepMod)
+## 1 < GVIFs < 2, no strong colinearity
 
-## All variables has GVF < 10
-## The variables are all multicollinear
+# ------------------------------------ BOTH PASS THE CHECKING ------------------------------------ ##
+
+# ----------------------------------------- INTERACTION -------------------------------------------- ##
 
 # Interactions between the variables 
 interactionModel <- lm(wt...7 ~ gestation + smoke + ht + drace + parity + dht 
@@ -197,6 +162,7 @@ summary(interactionModel)
 ## Gestation and smoke have interactions between each other
 
 # ----------------------------------------- VALIDATION & MSE -------------------------------------------- ##
+
 
 # validation datasets and Mean Square Error (MSE) and hold out a random 20% for this purpose
 # set the random 20% validation dataset
