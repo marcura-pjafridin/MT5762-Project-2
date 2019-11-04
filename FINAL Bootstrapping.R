@@ -21,7 +21,7 @@ bootstrapdata6 <- data.frame(x6 , y)
 bootresults_gestation <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_gestation <- bootstrapdata1[sample(1 : 100, 100, replace = T),]
+  bootData_gestation <- bootstrapdata1[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_gestation <- lm( y~ x1, data = bootData_gestation)
   #store the coefficients
@@ -41,7 +41,7 @@ rbind(quantile(bootresults_gestation[,1], probs = c(0.025, 0.975)),
 bootresults_smoke <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_smoke <- bootstrapdata2[sample(1 : 100, 100, replace = T),]
+  bootData_smoke <- bootstrapdata2[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_smoke<- lm( y~ x2, data = bootData_smoke)
   #store the coefficients
@@ -62,7 +62,7 @@ rbind(quantile(bootresults_smoke[,1], probs = c(0.025, 0.975)),
 bootresults_ht <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_ht <- bootstrapdata3[sample(1 : 100, 100, replace = T),]
+  bootData_ht <- bootstrapdata3[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_ht <- lm( y~ x3, data = bootData_ht)
   #store the coefficients
@@ -81,7 +81,7 @@ rbind(quantile(bootresults_ht[,1], probs = c(0.025, 0.975)),
 bootresults_drace <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_drace  <- bootstrapdata4[sample(1 : 100, 100, replace = T),]
+  bootData_drace  <- bootstrapdata4[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_drace  <- lm( y~ x4, data = bootData_drace )
   #store the coefficients
@@ -102,7 +102,7 @@ rbind(quantile(bootresults_drace [,1], probs = c(0.025, 0.975)),
 bootresults_parity <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_parity  <- bootstrapdata5[sample(1 : 100, 100, replace = T),]
+  bootData_parity  <- bootstrapdata5[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_parity  <- lm( y~ x5, data = bootData_parity )
   #store the coefficients
@@ -122,7 +122,7 @@ rbind(quantile(bootresults_parity [,1], probs = c(0.025, 0.975)),
 bootresults_dht <- array(dim = c(1000, 2))
 for (i in 1:1000) {
   #resample the data 1000 replication
-  bootData_dht  <- bootstrapdata6[sample(1 : 100, 100, replace = T),]
+  bootData_dht  <- bootstrapdata6[sample(1 : 1000, 1000, replace = T),]
   #fit the model
   bootLM_dht  <- lm( y~ x6, data = bootData_dht )
   #store the coefficients
